@@ -1,0 +1,69 @@
+{
+  "version": "0.0.0",
+  "name": "@cn-shell/jira",
+  "description": "A Cloud Native extension for Jira",
+  "main": "./dist/main.js",
+  "bin": "",
+  "files": [
+    "dist/**/*"
+  ],
+  "lint-staged": {
+    "**/*.js": [
+      "prettier --write",
+      "git add"
+    ],
+    "**/*.{json,md,yaml}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "prettier": {
+    "trailingComma": "all"
+  },
+  "scripts": {
+    "build": "tsc",
+    "format-ts": "prettier --write 'src/**/*.ts'",
+    "format-js": "prettier --write 'dist/**/*.{js,ts}'",
+    "format-misc": "prettier --write '**/*.{json,md,yaml}'",
+    "install-bin": "npm install -g $(npm pack . | tail -1)",
+    "test": "echo \"No tests\" && exit 0",
+    "clean": "rm -rf ./dist",
+    "prepare": "npm run clean && npm run format-ts && npm run format-misc && tsc",
+    "prepublishOnly": "npm run format-js && npm test"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "keywords": [
+    "Cloud",
+    "Native ",
+    "Application",
+    "Extension",
+    "Jira"
+  ],
+  "author": "Black Eye Technology",
+  "license": "MIT",
+  "devDependencies": {
+    "husky": "^3.1.0",
+    "lint-staged": "^9.5.0",
+    "prettier": "^1.19.1",
+    "typescript": "^3.9.7"
+  },
+  "dependencies": {
+    "@types/node": "^12.12.61",
+    "cn-shell": "^2.14.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blackeyetech/cns-netbox.git"
+  },
+  "bugs": {
+    "url": "https://github.com/blackeyetech/cns-netbox/issues"
+  },
+  "homepage": "https://github.com/blackeyetech/cns-netbox#readme"
+}
