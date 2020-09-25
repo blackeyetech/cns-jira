@@ -65,13 +65,12 @@ class CNJira extends CNShell {
 
   // Public methods here
   public async login(auth: AuthDetails): Promise<string> {
-    //{ JSESSIONID: sessionIdOrAuth };
     let url = this._resourceUrls.session;
 
     let res = await this.httpReq({
       method: "post",
       url,
-      auth: {
+      data: {
         username: auth.username,
         password: auth.password,
       },
