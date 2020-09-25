@@ -24,27 +24,28 @@ interface FieldDict {
 interface ProjectDetails {
   [key: string]: {
     name: string;
-    id: number;
+    id: string;
   };
 }
 
 // CNJira class here
 class CNJira extends CNShell {
   // Properties here
-  private _jiraServer: string;
-  private _jiraResourceUrls: { [key: string]: string };
-  private _jiraFieldDict: FieldDict;
+  private _server: string;
+  private _resourceUrls: { [key: string]: string };
+  private _fieldDict: FieldDict;
+  private _projects: ProjectDetails;
 
   // Constructor here
   constructor(name: string) {
     super(name);
 
     let server = this.getRequiredCfg(CFG_JIRA_SERVER);
-    this._jiraServer = server.replace(/(\/+$)/, "");
+    this._server = server.replace(/(\/+$)/, "");
 
     // Prepend the server to the resources to make our life easier
     for (let r in JiraResources) {
-      this._jiraResourceUrls[r] = `${this._jiraServer}${JiraResources[r]}`;
+      this._resourceUrls[r] = `${this._server}${JiraResources[r]}`;
     }
   }
 
@@ -64,7 +65,7 @@ class CNJira extends CNShell {
   // Public methods here
   public async login(auth: AuthDetails): Promise<string> {
     //{ JSESSIONID: sessionIdOrAuth };
-    let url = this._jiraResourceUrls.session;
+    let url = this._resourceUrls.session;
 
     let res = await this.httpReq({
       method: "post",
@@ -82,11 +83,11 @@ class CNJira extends CNShell {
       throw error;
     });
 
-    return res.data.session;
+    return res.data.session.value;
   }
 
   async logout(sessionId: string): Promise<void> {
-    let url = this._jiraResourceUrls.session;
+    let url = this._resourceUrls.session;
 
     await this.httpReq({
       method: "delete",
@@ -109,11 +110,11 @@ class CNJira extends CNShell {
     update: boolean = false,
   ): Promise<FieldDict> {
     // Check to see if the field dict is populated AND the user hasn't requested it to be updated
-    if (this._jiraFieldDict !== undefined && update === false) {
-      return this._jiraFieldDict;
+    if (this._fieldDict !== undefined && update === false) {
+      return this._fieldDict;
     }
 
-    let url = this._jiraResourceUrls.field;
+    let url = this._resourceUrls.field;
 
     let res = await this.httpReq({
       method: "get",
@@ -130,20 +131,28 @@ class CNJira extends CNShell {
       throw error;
     });
 
-    let fieldDict: FieldDict = { byId: {}, byName: {} };
+    this._fieldDict = { byId: {}, byName: {} };
 
     if (Array.isArray(res.data)) {
       for (let field of res.data) {
-        fieldDict.byName[field.name] = field.id;
-        fieldDict.byId[field.id] = field.name;
+        this._fieldDict.byName[field.name] = field.id;
+        this._fieldDict.byId[field.id] = field.name;
       }
     }
 
-    return fieldDict;
+    return this._fieldDict;
   }
 
-  public async getProjects(sessionId: string): Promise<ProjectDetails> {
-    let url = this._jiraResourceUrls.project;
+  public async getProjects(
+    sessionId: string,
+    update: boolean = false,
+  ): Promise<ProjectDetails> {
+    // Check to see if the projects are populated AND the user hasn't requested it to be updated
+    if (this._projects !== undefined && update === false) {
+      return this._projects;
+    }
+
+    let url = this._resourceUrls.project;
 
     let res = await this.httpReq({
       method: "get",
@@ -160,24 +169,76 @@ class CNJira extends CNShell {
       throw error;
     });
 
-    let projects: ProjectDetails = {};
+    this._projects = {};
 
     if (Array.isArray(res.data)) {
       for (let project of res.data) {
-        projects[project.key] = {
+        this._projects[project.key] = {
           name: project.name,
           id: project.id,
         };
       }
     }
 
-    return projects;
+    return this._projects;
   }
 
-  public async getIssue(sessionId: string, idOrKey: string) {
-    let fieldDict = await this.getFieldDict(sessionId);
+  public async createIssue(
+    projectKey: string,
+    fields: string[],
+    sessionId: string,
+  ): Promise<string> {
+    await this.getProjects(sessionId);
 
-    let url = `${this._jiraResourceUrls.issue}/${idOrKey}`;
+    let projectId = this._projects[projectKey].id;
+
+    let issue: { [key: string]: any } = {
+      fields: {
+        project: {
+          id: projectId,
+        },
+      },
+    };
+
+    // Convert any field names to field IDs
+    await this.getFieldDict(sessionId);
+
+    for (let fname in fields) {
+      let fid = this._fieldDict.byName[fname];
+
+      if (fid !== undefined) {
+        issue.fields[fid] = fields[fname];
+      } else {
+        issue.fields[fname] = fields[fname];
+      }
+    }
+
+    let url = this._resourceUrls.issue;
+
+    let res = await this.httpReq({
+      method: "post",
+      url,
+      headers: {
+        cookie: { JSESSIONID: sessionId },
+      },
+    }).catch(e => {
+      let error: HttpError = {
+        status: e.response.status,
+        message: e.response.data,
+      };
+
+      throw error;
+    });
+
+    return res.data.key;
+  }
+
+  public async getIssue(
+    sessionId: string,
+    idOrKey: string,
+  ): Promise<{ [key: string]: string }> {
+    let url = `${this._resourceUrls.issue}/${idOrKey}`;
+
     let res = await this.httpReq({
       method: "get",
       url,
@@ -193,228 +254,188 @@ class CNJira extends CNShell {
       throw error;
     });
 
-    let issue: { [key: string]: string } = {};
+    let issue: { [key: string]: any } = {};
+
+    // Convert any field name to field IDs
+    await this.getFieldDict(sessionId);
 
     for (let fid in res.data.fields) {
-      let fname = fieldDict.byId[fid];
-      issue[fname] = res.data.fields[fid];
+      let fname = this._fieldDict.byId[fid];
+
+      if (fname !== undefined) {
+        issue[fname] = res.data.fields[fid];
+      } else {
+        issue[fid] = res.data.fields[fid];
+      }
     }
 
     return issue;
   }
+
+  public async assignIssue(
+    idOrKey: string,
+    assignee: string,
+    sessionId: string,
+  ): Promise<void> {
+    let url = `${this._resourceUrls.issue}/${idOrKey}/assignee`;
+
+    await this.httpReq({
+      method: "put",
+      url,
+      data: {
+        name: assignee,
+      },
+      headers: {
+        cookie: { JSESSIONID: sessionId },
+      },
+    }).catch(e => {
+      let error: HttpError = {
+        status: e.response.status,
+        message: e.response.data,
+      };
+
+      throw error;
+    });
+  }
+
+  public async addComment(
+    idOrKey: string,
+    comment: string,
+    sessionId: string,
+  ): Promise<void> {
+    let url = `${this._resourceUrls.issue}/${idOrKey}/comment`;
+
+    await this.httpReq({
+      method: "post",
+      url,
+      data: {
+        body: comment,
+      },
+      headers: {
+        cookie: { JSESSIONID: sessionId },
+      },
+    }).catch(e => {
+      let error: HttpError = {
+        status: e.response.status,
+        message: e.response.data,
+      };
+
+      throw error;
+    });
+  }
+
+  public async addWatcher(
+    idOrKey: string,
+    watcher: string,
+    sessionId: string,
+  ): Promise<void> {
+    let url = `${this._resourceUrls.issue}/${idOrKey}/watchers`;
+
+    await this.httpReq({
+      method: "post",
+      url,
+      data: watcher,
+      headers: {
+        cookie: { JSESSIONID: sessionId },
+      },
+    }).catch(e => {
+      let error: HttpError = {
+        status: e.response.status,
+        message: e.response.data,
+      };
+
+      throw error;
+    });
+  }
+
+  public async getTransitions(
+    idOrKey: string,
+    sessionId: string,
+  ): Promise<{ [key: string]: string }> {
+    let url = `${this._resourceUrls.issue}/${idOrKey}/transitions`;
+
+    let res = await this.httpReq({
+      method: "get",
+      url,
+      headers: {
+        cookie: { JSESSIONID: sessionId },
+      },
+    }).catch(e => {
+      let error: HttpError = {
+        status: e.response.status,
+        message: e.response.data,
+      };
+
+      throw error;
+    });
+
+    let transitions: { [key: string]: string } = {};
+
+    for (let transition of res.data.transitions) {
+      transitions[transition.name] = transition.id;
+    }
+
+    return transitions;
+  }
+
+  public async doTransition(
+    idOrKey: string,
+    transitionIdOrName: string,
+    sessionId: string,
+    fields?: string[],
+    comment?: string,
+  ): Promise<void> {
+    // transition may be the Transition ID or name so check
+    let availableTransitions = await this.getTransitions(idOrKey, sessionId);
+    let transitionId = availableTransitions[transitionIdOrName];
+
+    if (transitionId === undefined) {
+      transitionId = transitionIdOrName;
+    }
+
+    let dfields: { [key: string]: { [key: string]: string } } = {};
+
+    if (fields !== undefined) {
+      // Convert any field names to field IDs
+      await this.getFieldDict(sessionId);
+
+      for (let fname in fields) {
+        let fid = this._fieldDict.byName[fname];
+
+        if (fid !== undefined) {
+          dfields[fid] = { name: fields[fname] };
+        } else {
+          dfields[fname] = { name: fields[fname] };
+        }
+      }
+    }
+
+    let dcomment = { comment: [{ add: { body: comment } }] };
+
+    let data = {
+      update: comment === undefined ? undefined : dcomment,
+      fields: fields === undefined || fields.length === 0 ? undefined : dfields,
+      transition: { id: transitionId },
+    };
+
+    let url = `${this._resourceUrls.issue}/${idOrKey}/transitions`;
+
+    await this.httpReq({
+      method: "post",
+      url,
+      data,
+      headers: {
+        cookie: { JSESSIONID: sessionId },
+      },
+    }).catch(e => {
+      let error: HttpError = {
+        status: e.response.status,
+        message: e.response.data,
+      };
+
+      throw error;
+    });
+  }
 }
 
 export { CNJira, AuthDetails, FieldDict, ProjectDetails };
-
-//   async createIssue(projectIdOrKey, fields, sessionIdOrAuth) {
-//     this.checkSessionIdOrAuth(sessionIdOrAuth);
-
-//     if (typeof projectIdOrKey !== string || projectIdOrKey.length === 0) {
-//       throw this.JiraError(400, "Must provide a project ID or Key");
-//     }
-
-//     // project may be the Project ID or key so check
-//     let projectKeys = await this.getProjects(sessionIdOrAuth),
-//       projectId = projectKeys[projectIdOrKey].id;
-
-//     if (projectId === undefined) {
-//       projectId = projectIdOrKey;
-//     }
-
-//     // Convert any field name to field IDs
-//     let fieldDict = await this.getFieldDict(sessionIdOrAuth);
-//     for (let f in fields) {
-//       let fid = fieldDict.byName[f];
-//       if (fid !== undefined) {
-//         fields[fid] = fields[f];
-//         delete fields[f];
-//       }
-//     }
-
-//     let url = jiraResourceUrls.issue,
-//       options = this.sessionIdOrAuthOptions(sessionIdOrAuth, true);
-
-//     let data = {};
-//     data.fields = fields;
-//     data.fields.project = { id: projectId };
-
-//     let res = await needle("post", url, data, options);
-
-//     if (res.statusCode === 201) {
-//       this.jiraApiLog.info(
-//         `User (${username}) is created issue ${res.body.key}`);
-//       return res.body.key;
-//     }
-
-//     throw this.JiraError(res.statusCode, JSON.stringify(res.body));
-//   }
-
-//   async assignIssue(idOrKey, assignee, sessionIdOrAuth) {
-//     this.checkSessionIdOrAuth(sessionIdOrAuth);
-
-//     if (typeof idOrKey !== "string" || idOrKey.length === 0) {
-//       throw this.JiraError(400, "Must provide an issue ID or Key");
-//     }
-
-//     if (typeof assignee !== string || assignee.length === 0){
-//       throw this.JiraError(400, "Must provide an assignee");
-//     }
-
-//     let url = `${jiraResourceUrls.issue}/${idOrKey}/assignee`,
-//       options = this.sessionIdOrAuthOptions(sessionIdOrAuth, true);
-
-//     let res = await needle("put", url, { name: assignee } , options);
-
-//     if (res.statusCode === 204 || res.statusCode === 205) {
-//       return;
-//     }
-
-//     throw this.JiraError(res.statusCode, JSON.stringify(res.body));
-//   }
-
-//   async addComment(idOrKey, comment, sessionIdOrAuth) {
-//     this.checkSessionIdOrAuth(sessionIdOrAuth);
-
-//     if (typeof idOrKey !== "string" || idOrKey.length === 0) {
-//       throw this.JiraError(400, "Must provide an issue ID or Key");
-//     }
-
-//     if (typeof comment !== string || comment.length === 0){
-//       throw this.JiraError(400, "Must provide an comment");
-//     }
-
-//     let url = `${jiraResourceUrls.issue}/${idOrKey}/comment`,
-//       options = this.sessionIdOrAuthOptions(sessionIdOrAuth, true);
-
-//     let res = await needle("post", url, { body: comment } , options);
-
-//     if (res.statusCode === 201) {
-//       return;
-//     }
-
-//     throw this.JiraError(res.statusCode, JSON.stringify(res.body));
-//   }
-
-//   async addWatcher(idOrKey, watcher, sessionIdOrAuth) {
-//     this.checkSessionIdOrAuth(sessionIdOrAuth);
-
-//     if (typeof idOrKey !== "string" || idOrKey.length === 0) {
-//       throw this.JiraError(400, "Must provide an issue ID or Key");
-//     }
-
-//     if (typeof watcher !== string || watcher.length === 0){
-//       throw this.JiraError(400, "Must provide an watcher");
-//     }
-
-//     let url = `${jiraResourceUrls.issue}/${idOrKey}/watchers`,
-//       options = this.sessionIdOrAuthOptions(sessionIdOrAuth, true);
-
-//     let res = await needle("post", url, `\"${watcher}\"`, options);
-
-//     if (res.statusCode === 204 || res.statusCode === 205) {
-//       return;
-//     }
-
-//     throw this.JiraError(res.statusCode, JSON.stringify(res.body));
-//   }
-
-//   async getTransitions(idOrKey, sessionIdOrAuth) {
-//     this.checkSessionIdOrAuth(sessionIdOrAuth);
-
-//     if (typeof idOrKey !== "string" || idOrKey.length === 0) {
-//       throw this.JiraError(400, "Must provide an issue ID or Key");
-//     }
-
-//     let url = `${jiraResourceUrls.issue}/${idOrKey}/transitions`,
-//       query = {
-//         expand: "transitions",
-//         fields: "transitions"
-//       },
-//       options = this.sessionIdOrAuthOptions(sessionIdOrAuth);
-
-//     let res = await needle("get", url, query, options);
-
-//     let transitions = {};
-
-//     if (res.statusCode === 200 && Array.isArray(res.body.transitions)) {
-//       for (let transition of res.body.transitions) {
-//         transitions[transition.name] = transition.id;
-//       }
-
-//       return transitions;
-//     }
-
-//     throw this.JiraError(res.statusCode, JSON.stringify(res.body));
-//   }
-
-//   async doTransition(idOrKey, transitionIdOrName, fields, sessionIdOrAuth) {
-//     this.checkSessionIdOrAuth(sessionIdOrAuth);
-
-//     if (typeof idOrKey !== "string" || idOrKey.length === 0) {
-//       throw this.JiraError(400, "Must provide an issue ID or Key");
-//     }
-
-//     if (typeof transitionIdOrName !== string ||
-//       transitionIdOrName.length === 0) {
-
-//       throw this.JiraError(400, "Must provide a transition ID or Name");
-//     }
-
-//     // transition  may be the Transition ID or name so check
-//     let avialable = await this.getTransitions(idOrKey, sessionIdOrAuth),
-//       transitionId = avialable[transitionIdOrName];
-
-//     if (transitionId === undefined) {
-//       transitionId = transitionIdOrName;
-//     }
-
-//     // Convert any field names to field IDs
-//     let fieldDict = await this.getFieldDict(sessionIdOrAuth);
-//     for (let f in fields) {
-//       let fid = fieldDict[f];
-//       if (fid !== undefined) {
-//         fields[fid] = fields[f];
-//         delete fields[f];
-//       }
-//     }
-
-//     let url = `${jiraResourceUrls.issue}/${idOrKey}/transitions`,
-//       options = this.sessionIdOrAuthOptions(sessionIdOrAuth, true);
-
-//     let data = {};
-//     data.fields = {};
-//     for (let field in fields) {
-//       data.fields[field] = { name: fields[field] };
-//     }
-
-//     data.transition = { id: transitionId };
-
-//     if (typeof sessionIdOrAuth === "string") {
-//       options.cookies = { JSESSIONID: sessionIdOrAuth };
-//     } else {
-//       options.username = sessionIdOrAuth.username;
-//       options.password = sessionIdOrAuth.password;
-//     }
-
-//     let res = await needle("post", url, data , options);
-
-//     if (res.statusCode === 204) {
-//       return;
-//     }
-
-//     throw this.JiraError(res.statusCode, JSON.stringify(res.body));
-//   }
-
-//   JiraError(status, msg) {
-//     let e = new JiraBapError(status, msg);
-
-//     this.jiraApiLog.error(`${status}: ${e}`);
-
-//     return e;
-//   }
-// }
-
-// // Use the same version as besh
-// JiraBap.version = besh.version;
-
-// module.exports = JiraBap;
