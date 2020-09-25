@@ -23,7 +23,7 @@ interface FieldDict {
 
 interface ProjectDetails {
   [key: string]: {
-    name: string;
+    key: string;
     id: string;
   };
 }
@@ -177,7 +177,7 @@ class CNJira extends CNShell {
     if (Array.isArray(res.data)) {
       for (let project of res.data) {
         this._projects[project.key] = {
-          name: project.name,
+          key: project.key,
           id: project.id,
         };
       }
@@ -187,9 +187,9 @@ class CNJira extends CNShell {
   }
 
   public async createIssue(
+    sessionId: string,
     projectKey: string,
     fields: string[],
-    sessionId: string,
   ): Promise<string> {
     await this.getProjects(sessionId);
 
@@ -277,9 +277,9 @@ class CNJira extends CNShell {
   }
 
   public async assignIssue(
+    sessionId: string,
     idOrKey: string,
     assignee: string,
-    sessionId: string,
   ): Promise<void> {
     let url = `${this._resourceUrls.issue}/${idOrKey}/assignee`;
 
@@ -303,9 +303,9 @@ class CNJira extends CNShell {
   }
 
   public async addComment(
+    sessionId: string,
     idOrKey: string,
     comment: string,
-    sessionId: string,
   ): Promise<void> {
     let url = `${this._resourceUrls.issue}/${idOrKey}/comment`;
 
@@ -329,9 +329,9 @@ class CNJira extends CNShell {
   }
 
   public async addWatcher(
+    sessionId: string,
     idOrKey: string,
     watcher: string,
-    sessionId: string,
   ): Promise<void> {
     let url = `${this._resourceUrls.issue}/${idOrKey}/watchers`;
 
@@ -353,8 +353,8 @@ class CNJira extends CNShell {
   }
 
   public async getTransitions(
-    idOrKey: string,
     sessionId: string,
+    idOrKey: string,
   ): Promise<{ [key: string]: string }> {
     let url = `${this._resourceUrls.issue}/${idOrKey}/transitions`;
 
@@ -383,14 +383,14 @@ class CNJira extends CNShell {
   }
 
   public async doTransition(
+    sessionId: string,
     idOrKey: string,
     transitionIdOrName: string,
-    sessionId: string,
     fields?: string[],
     comment?: string,
   ): Promise<void> {
     // transition may be the Transition ID or name so check
-    let availableTransitions = await this.getTransitions(idOrKey, sessionId);
+    let availableTransitions = await this.getTransitions(sessionId, idOrKey);
     let transitionId = availableTransitions[transitionIdOrName];
 
     if (transitionId === undefined) {
