@@ -75,6 +75,9 @@ class CNJira extends CNShell {
         username: auth.username,
         password: auth.password,
       },
+      headers: {
+        "Content-Type": "application/json;charset=UTF-8",
+      },
     }).catch(e => {
       let error: HttpError = {
         status: e.response.status,
@@ -219,6 +222,7 @@ class CNJira extends CNShell {
     let res = await this.httpReq({
       method: "post",
       url,
+      data: issue,
       headers: {
         cookie: { JSESSIONID: sessionId },
       },
