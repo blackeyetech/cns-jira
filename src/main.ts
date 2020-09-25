@@ -44,6 +44,7 @@ class CNJira extends CNShell {
     this._server = server.replace(/(\/+$)/, "");
 
     // Prepend the server to the resources to make our life easier
+    this._resourceUrls = {};
     for (let r in JiraResources) {
       this._resourceUrls[r] = `${this._server}${JiraResources[r]}`;
     }
