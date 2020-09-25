@@ -96,7 +96,7 @@ class CNJira extends CNShell {
       method: "delete",
       url,
       headers: {
-        cookie: { JSESSIONID: sessionId },
+        cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
       let error: HttpError = {
@@ -123,7 +123,7 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers: {
-        cookie: { JSESSIONID: sessionId },
+        cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
       let error: HttpError = {
@@ -161,7 +161,7 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers: {
-        cookie: { JSESSIONID: sessionId },
+        cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
       let error: HttpError = {
@@ -223,7 +223,7 @@ class CNJira extends CNShell {
       url,
       data: issue,
       headers: {
-        cookie: { JSESSIONID: sessionId },
+        cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
       let error: HttpError = {
@@ -247,7 +247,7 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers: {
-        cookie: { JSESSIONID: sessionId },
+        cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
       let error: HttpError = {
@@ -290,7 +290,7 @@ class CNJira extends CNShell {
         name: assignee,
       },
       headers: {
-        cookie: { JSESSIONID: sessionId },
+        cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
       let error: HttpError = {
@@ -316,7 +316,7 @@ class CNJira extends CNShell {
         body: comment,
       },
       headers: {
-        cookie: { JSESSIONID: sessionId },
+        cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
       let error: HttpError = {
@@ -340,7 +340,7 @@ class CNJira extends CNShell {
       url,
       data: watcher,
       headers: {
-        cookie: { JSESSIONID: sessionId },
+        cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
       let error: HttpError = {
@@ -362,7 +362,7 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers: {
-        cookie: { JSESSIONID: sessionId },
+        cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
       let error: HttpError = {
@@ -429,7 +429,7 @@ class CNJira extends CNShell {
       url,
       data,
       headers: {
-        cookie: { JSESSIONID: sessionId },
+        cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
       let error: HttpError = {
