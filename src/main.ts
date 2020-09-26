@@ -137,11 +137,11 @@ class CNJira extends CNShell {
       for (let field of res.data) {
         this._fieldDict.byName[field.name] = {
           id: field.id,
-          type: field.schema.type,
+          type: field.schema !== undefined ? field.schema.type : "Unknown",
         };
         this._fieldDict.byId[field.id] = {
           name: field.name,
-          type: field.schema.type,
+          type: field.schema !== undefined ? field.schema.type : "Unknown",
         };
       }
     }
