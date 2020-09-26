@@ -183,20 +183,88 @@ class CNJira extends CNShell {
     return this._projects;
   }
 
+  public async getIssueTypes(
+    sessionId: string,
+    projectKey: string,
+  ): Promise<{ [key: string]: string }> {
+    let url = `${this._resourceUrls.createmeta}?projectKeys=${projectKey}`;
+
+    let res = await this.httpReq({
+      method: "get",
+      url,
+      headers: {
+        cookie: `JSESSIONID=${sessionId}`,
+      },
+    }).catch(e => {
+      let error: HttpError = {
+        status: e.response.status,
+        message: e.response.data,
+      };
+
+      throw error;
+    });
+
+    let types: { [key: string]: string } = {};
+
+    // There is only 1 porject in the array show use that
+    for (let type of res.data.projects[0].issueTypes) {
+      types[type.name] = type.id;
+    }
+
+    return types;
+  }
+
+  public async getComponents(
+    sessionId: string,
+    projectKey: string,
+  ): Promise<{ [key: string]: string }> {
+    let url = `${this._resourceUrls.components}/${projectKey}/components`;
+
+    let res = await this.httpReq({
+      method: "get",
+      url,
+      headers: {
+        cookie: `JSESSIONID=${sessionId}`,
+      },
+    }).catch(e => {
+      let error: HttpError = {
+        status: e.response.status,
+        message: e.response.data,
+      };
+
+      throw error;
+    });
+
+    let components: { [key: string]: string } = {};
+
+    // There is only 1 porject in the array show use that
+    for (let component of res.data.projects[0]) {
+      components[component.name] = component.id;
+    }
+
+    return components;
+  }
+
   public async createIssue(
     sessionId: string,
     projectKey: string,
+    issueType: string,
+    component: string,
+    summary: string,
+    labels: string[],
     fields: string[],
   ): Promise<string> {
     await this.getProjects(sessionId);
-
-    let projectId = this._projects[projectKey].id;
+    let issueTypes = await this.getIssueTypes(sessionId, projectKey);
+    let components = await this.getComponents(sessionId, projectKey);
 
     let issue: { [key: string]: any } = {
       fields: {
-        project: {
-          id: projectId,
-        },
+        project: { id: this._projects[projectKey].id },
+        issuetype: { id: issueTypes[issueType] },
+        components: [{ id: components[component] }],
+        labels,
+        summary,
       },
     };
 
