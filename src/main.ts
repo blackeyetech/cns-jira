@@ -207,7 +207,7 @@ class CNJira extends CNShell {
     let types: { [key: string]: string } = {};
 
     // There is only 1 porject in the array show use that
-    for (let type of res.data.projects[0].issueTypes) {
+    for (let type of res.data.projects[0].issuetypes) {
       types[type.name] = type.id;
     }
 
@@ -237,8 +237,7 @@ class CNJira extends CNShell {
 
     let components: { [key: string]: string } = {};
 
-    // There is only 1 porject in the array show use that
-    for (let component of res.data.projects[0]) {
+    for (let component of res.data) {
       components[component.name] = component.id;
     }
 
@@ -252,7 +251,7 @@ class CNJira extends CNShell {
     component: string,
     summary: string,
     labels: string[],
-    fields: string[],
+    fields: { [key: string]: string },
   ): Promise<string> {
     await this.getProjects(sessionId);
     let issueTypes = await this.getIssueTypes(sessionId, projectKey);
