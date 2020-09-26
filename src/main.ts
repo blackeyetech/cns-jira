@@ -17,8 +17,8 @@ interface AuthDetails {
 }
 
 interface FieldDict {
-  byName: { [key: string]: string };
-  byId: { [key: string]: string };
+  byName: { [key: string]: { id: string; type: string } };
+  byId: { [key: string]: { name: string; type: string } };
 }
 
 interface ProjectDetails {
@@ -135,8 +135,14 @@ class CNJira extends CNShell {
 
     if (Array.isArray(res.data)) {
       for (let field of res.data) {
-        this._fieldDict.byName[field.name] = field.id;
-        this._fieldDict.byId[field.id] = field.name;
+        this._fieldDict.byName[field.name] = {
+          id: field.id,
+          type: field.schema.type,
+        };
+        this._fieldDict.byId[field.id] = {
+          name: field.name,
+          type: field.schema.type,
+        };
       }
     }
 
@@ -249,9 +255,7 @@ class CNJira extends CNShell {
     projectKey: string,
     issueType: string,
     component: string,
-    summary: string,
-    labels: string[],
-    fields: { [key: string]: string },
+    fields: { [key: string]: any },
   ): Promise<string> {
     await this.getProjects(sessionId);
     let issueTypes = await this.getIssueTypes(sessionId, projectKey);
@@ -262,8 +266,6 @@ class CNJira extends CNShell {
         project: { id: this._projects[projectKey].id },
         issuetype: { id: issueTypes[issueType] },
         components: [{ id: components[component] }],
-        labels,
-        summary,
       },
     };
 
@@ -271,7 +273,7 @@ class CNJira extends CNShell {
     await this.getFieldDict(sessionId);
 
     for (let fname in fields) {
-      let fid = this._fieldDict.byName[fname];
+      let fid = this._fieldDict.byName[fname]?.id;
 
       if (fid !== undefined) {
         issue.fields[fid] = fields[fname];
@@ -328,7 +330,7 @@ class CNJira extends CNShell {
     await this.getFieldDict(sessionId);
 
     for (let fid in res.data.fields) {
-      let fname = this._fieldDict.byId[fid];
+      let fname = this._fieldDict.byId[fid]?.name;
 
       if (fname !== undefined) {
         issue[fname] = res.data.fields[fid];
@@ -469,7 +471,7 @@ class CNJira extends CNShell {
       await this.getFieldDict(sessionId);
 
       for (let fname in fields) {
-        let fid = this._fieldDict.byName[fname];
+        let fid = this._fieldDict.byName[fname]?.id;
 
         if (fid !== undefined) {
           dfields[fid] = { name: fields[fname] };
