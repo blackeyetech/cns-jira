@@ -17,15 +17,8 @@ interface AuthDetails {
 }
 
 interface FieldDict {
-  byName: { [key: string]: { id: string; type: string } };
-  byId: { [key: string]: { name: string; type: string } };
-}
-
-interface ProjectDetails {
-  [key: string]: {
-    key: string;
-    id: string;
-  };
+  byName: { [key: string]: { id: string; type: string; itemType: string } };
+  byId: { [key: string]: { name: string; type: string; itemType: string } };
 }
 
 // CNJira class here
@@ -34,7 +27,6 @@ class CNJira extends CNShell {
   private _server: string;
   private _resourceUrls: { [key: string]: string };
   private _fieldDict: FieldDict;
-  private _projects: ProjectDetails;
 
   // Constructor here
   constructor(name: string) {
@@ -138,86 +130,17 @@ class CNJira extends CNShell {
         this._fieldDict.byName[field.name] = {
           id: field.id,
           type: field.schema !== undefined ? field.schema.type : "Unknown",
+          itemType: field.schema !== undefined ? field.schema.items : "Unknown",
         };
         this._fieldDict.byId[field.id] = {
           name: field.name,
           type: field.schema !== undefined ? field.schema.type : "Unknown",
+          itemType: field.schema !== undefined ? field.schema.items : "Unknown",
         };
       }
     }
 
     return this._fieldDict;
-  }
-
-  public async getProjects(
-    sessionId: string,
-    update: boolean = false,
-  ): Promise<ProjectDetails> {
-    // Check to see if the projects are populated AND the user hasn't requested it to be updated
-    if (this._projects !== undefined && update === false) {
-      return this._projects;
-    }
-
-    let url = this._resourceUrls.project;
-
-    let res = await this.httpReq({
-      method: "get",
-      url,
-      headers: {
-        cookie: `JSESSIONID=${sessionId}`,
-      },
-    }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
-    });
-
-    this._projects = {};
-
-    if (Array.isArray(res.data)) {
-      for (let project of res.data) {
-        this._projects[project.key] = {
-          key: project.key,
-          id: project.id,
-        };
-      }
-    }
-
-    return this._projects;
-  }
-
-  public async getIssueTypes(
-    sessionId: string,
-    projectKey: string,
-  ): Promise<{ [key: string]: string }> {
-    let url = `${this._resourceUrls.createmeta}?projectKeys=${projectKey}`;
-
-    let res = await this.httpReq({
-      method: "get",
-      url,
-      headers: {
-        cookie: `JSESSIONID=${sessionId}`,
-      },
-    }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
-    });
-
-    let types: { [key: string]: string } = {};
-
-    // There is only 1 porject in the array show use that
-    for (let type of res.data.projects[0].issuetypes) {
-      types[type.name] = type.id;
-    }
-
-    return types;
   }
 
   public async getComponents(
@@ -257,14 +180,12 @@ class CNJira extends CNShell {
     component: string,
     fields: { [key: string]: any },
   ): Promise<string> {
-    await this.getProjects(sessionId);
-    let issueTypes = await this.getIssueTypes(sessionId, projectKey);
     let components = await this.getComponents(sessionId, projectKey);
 
     let issue: { [key: string]: any } = {
       fields: {
-        project: { id: this._projects[projectKey].id },
-        issuetype: { id: issueTypes[issueType] },
+        project: { key: projectKey },
+        issuetype: { name: issueType },
         components: [{ id: components[component] }],
       },
     };
@@ -509,4 +430,4 @@ class CNJira extends CNShell {
   }
 }
 
-export { CNJira, AuthDetails, FieldDict, ProjectDetails };
+export { CNJira, AuthDetails, FieldDict };
