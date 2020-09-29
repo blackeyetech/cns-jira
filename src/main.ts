@@ -249,7 +249,7 @@ class CNJira extends CNShell {
   public async getIssue(
     sessionId: string,
     idOrKey: string,
-  ): Promise<{ [key: string]: string }> {
+  ): Promise<{ [key: string]: any }> {
     let url = `${this._resourceUrls.issue}/${idOrKey}`;
 
     let res = await this.httpReq({
