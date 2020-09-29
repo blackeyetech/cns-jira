@@ -1,4 +1,4 @@
-import CNShell, { HttpError } from "cn-shell";
+import CNShell from "cn-shell";
 
 import { JiraResources } from "./jira-resource-url";
 
@@ -67,12 +67,7 @@ class CNJira extends CNShell {
         password: auth.password,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     return res.data.session.value;
@@ -88,12 +83,7 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
@@ -115,12 +105,7 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     this._fieldDict = { byId: {}, byName: {} };
@@ -147,7 +132,7 @@ class CNJira extends CNShell {
     sessionId: string,
     projectKey: string,
     issueType: string,
-    fieldId: string,
+    fieldName: string,
   ): Promise<string[]> {
     let url = this._resourceUrls.createmeta;
 
@@ -164,15 +149,18 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
-    let field = res.data.projects[0].issuetypes[0].fields[fieldId];
+    // Convert field name to field ID
+    let dict = await this.getFieldDict(sessionId);
+    let fieldInfo = dict.byName[fieldName];
+
+    if (fieldInfo === undefined) {
+      throw Error(`Unknown field ${fieldName}`);
+    }
+
+    let field = res.data.projects[0].issuetypes[0].fields[fieldInfo.id];
 
     if (field === undefined || field.allowedValues === undefined) {
       return [];
@@ -200,12 +188,7 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     let components: { [key: string]: string } = {};
@@ -257,12 +240,7 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     return res.data.key;
@@ -281,12 +259,7 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     let issue: { [key: string]: any } = {};
@@ -324,12 +297,7 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
@@ -350,12 +318,7 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
@@ -375,12 +338,7 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
@@ -397,12 +355,7 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     let transitions: { [key: string]: string } = {};
@@ -464,12 +417,7 @@ class CNJira extends CNShell {
         cookie: `JSESSIONID=${sessionId}`,
       },
     }).catch(e => {
-      let error: HttpError = {
-        status: e.response.status,
-        message: e.response.data,
-      };
-
-      throw error;
+      throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 }
