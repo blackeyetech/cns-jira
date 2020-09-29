@@ -143,6 +143,50 @@ class CNJira extends CNShell {
     return this._fieldDict;
   }
 
+  public async getAllowedFieldValues(
+    sessionId: string,
+    projectKey: string,
+    issueType: string,
+    fieldId: string,
+  ): Promise<string[]> {
+    let url = this._resourceUrls.createmeta;
+
+    let params = new URLSearchParams();
+    params.append("expand", "projects.issuetypes.fields");
+    params.append("projectKeys", projectKey);
+    params.append("issuetypeNames", issueType);
+
+    let res = await this.httpReq({
+      method: "get",
+      url,
+      params,
+      headers: {
+        cookie: `JSESSIONID=${sessionId}`,
+      },
+    }).catch(e => {
+      let error: HttpError = {
+        status: e.response.status,
+        message: e.response.data,
+      };
+
+      throw error;
+    });
+
+    let field = res.data.projects[0].issuetypes[0].fields[fieldId];
+
+    if (field === undefined || field.allowedValues === undefined) {
+      return [];
+    }
+
+    let allowed: string[] = [];
+
+    for (let info of field.allowedValues) {
+      allowed.push(info.value);
+    }
+
+    return allowed;
+  }
+
   public async getComponents(
     sessionId: string,
     projectKey: string,
