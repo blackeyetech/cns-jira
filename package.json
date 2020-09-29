@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "name": "@cn-shell/jira",
   "description": "A Cloud Native extension for Jira",
   "main": "./dist/main.js",
