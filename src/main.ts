@@ -3,7 +3,7 @@ import CNShell from "cn-shell";
 import { JiraResources } from "./jira-resource-url";
 
 // Jira config consts here
-const CFG_JIRA_SERVER = "server";
+const CFG_JIRA_SERVER = "JIRA_SERVER";
 
 process.on("unhandledRejection", error => {
   // Will print "unhandledRejection err is not defined"
