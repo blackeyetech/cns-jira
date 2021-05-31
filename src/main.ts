@@ -5,10 +5,13 @@ import { JiraResources } from "./jira-resource-url";
 // Jira config consts here
 const CFG_JIRA_SERVER = "JIRA_SERVER";
 
-process.on("unhandledRejection", error => {
-  // Will print "unhandledRejection err is not defined"
-  console.log("unhandledRejection", error);
-});
+const CFG_JIRA_USER = "JIRA_USER";
+const CFG_JIRA_PASSWORD = "JIRA_PASSWORD";
+
+// process.on("unhandledRejection", error => {
+//   // Will print "unhandledRejection err is not defined"
+//   console.log("unhandledRejection", error);
+// });
 
 // Interfaces here
 interface AuthDetails {
@@ -25,15 +28,21 @@ interface FieldDict {
 class CNJira extends CNShell {
   // Properties here
   private _server: string;
+  private _user: string;
+  private _password: string;
+
   private _resourceUrls: { [key: string]: string };
   private _fieldDict: FieldDict;
 
   // Constructor here
-  constructor(name: string) {
-    super(name);
+  constructor(name: string, master?: CNShell) {
+    super(name, master);
 
     let server = this.getRequiredCfg(CFG_JIRA_SERVER);
     this._server = server.replace(/(\/+$)/, "");
+
+    this._user = this.getCfg(CFG_JIRA_USER);
+    this._password = this.getCfg(CFG_JIRA_PASSWORD);
 
     // Prepend the server to the resources to make our life easier
     this._resourceUrls = {};
@@ -56,15 +65,15 @@ class CNJira extends CNShell {
   }
 
   // Public methods here
-  public async login(auth: AuthDetails): Promise<string> {
+  public async login(auth?: AuthDetails): Promise<string> {
     let url = this._resourceUrls.session;
 
     let res = await this.httpReq({
       method: "post",
       url,
       data: {
-        username: auth.username,
-        password: auth.password,
+        username: auth !== undefined ? auth.username : this._user,
+        password: auth !== undefined ? auth.password : this._password,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
