@@ -30,6 +30,7 @@ class CNJira extends CNShell {
   private _server: string;
   private _user: string;
   private _password: string;
+  private _jiraSessionId: string;
 
   private _resourceUrls: { [key: string]: string };
   private _fieldDict: FieldDict;
@@ -65,7 +66,7 @@ class CNJira extends CNShell {
   }
 
   // Public methods here
-  public async login(auth?: AuthDetails): Promise<string> {
+  public async login(auth?: AuthDetails): Promise<void> {
     let url = this._resourceUrls.session;
 
     let res = await this.httpReq({
@@ -79,27 +80,24 @@ class CNJira extends CNShell {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
-    return res.data.session.value;
+    this._jiraSessionId = res.data.session.value;
   }
 
-  async logout(sessionId: string): Promise<void> {
+  async logout(): Promise<void> {
     let url = this._resourceUrls.session;
 
     await this.httpReq({
       method: "delete",
       url,
       headers: {
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
-  public async getFieldDict(
-    sessionId: string,
-    update: boolean = false,
-  ): Promise<FieldDict> {
+  public async getFieldDict(update: boolean = false): Promise<FieldDict> {
     // Check to see if the field dict is populated AND the user hasn't requested it to be updated
     if (this._fieldDict !== undefined && update === false) {
       return this._fieldDict;
@@ -111,7 +109,7 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers: {
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
@@ -138,7 +136,6 @@ class CNJira extends CNShell {
   }
 
   public async getAllowedFieldValues(
-    sessionId: string,
     projectKey: string,
     issueType: string,
     fieldName: string,
@@ -155,14 +152,14 @@ class CNJira extends CNShell {
       url,
       params,
       headers: {
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     // Convert field name to field ID
-    let dict = await this.getFieldDict(sessionId);
+    let dict = await this.getFieldDict();
     let fieldInfo = dict.byName[fieldName];
 
     if (fieldInfo === undefined) {
@@ -185,7 +182,6 @@ class CNJira extends CNShell {
   }
 
   public async getComponents(
-    sessionId: string,
     projectKey: string,
   ): Promise<{ [key: string]: string }> {
     let url = `${this._resourceUrls.components}/${projectKey}/components`;
@@ -194,7 +190,7 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers: {
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
@@ -210,13 +206,12 @@ class CNJira extends CNShell {
   }
 
   public async createIssue(
-    sessionId: string,
     projectKey: string,
     issueType: string,
     component: string,
     fields: { [key: string]: any },
   ): Promise<string> {
-    let components = await this.getComponents(sessionId, projectKey);
+    let components = await this.getComponents(projectKey);
 
     let issue: { [key: string]: any } = {
       fields: {
@@ -227,7 +222,7 @@ class CNJira extends CNShell {
     };
 
     // Convert any field names to field IDs
-    await this.getFieldDict(sessionId);
+    await this.getFieldDict();
 
     for (let fname in fields) {
       let fid = this._fieldDict.byName[fname]?.id;
@@ -246,7 +241,7 @@ class CNJira extends CNShell {
       url,
       data: issue,
       headers: {
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
@@ -255,17 +250,14 @@ class CNJira extends CNShell {
     return res.data.key;
   }
 
-  public async getIssue(
-    sessionId: string,
-    idOrKey: string,
-  ): Promise<{ [key: string]: any }> {
+  public async getIssue(idOrKey: string): Promise<{ [key: string]: any }> {
     let url = `${this._resourceUrls.issue}/${idOrKey}`;
 
     let res = await this.httpReq({
       method: "get",
       url,
       headers: {
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
@@ -274,7 +266,7 @@ class CNJira extends CNShell {
     let issue: { [key: string]: any } = {};
 
     // Convert any field name to field IDs
-    await this.getFieldDict(sessionId);
+    await this.getFieldDict();
 
     for (let fid in res.data.fields) {
       let fname = this._fieldDict.byId[fid]?.name;
@@ -289,11 +281,7 @@ class CNJira extends CNShell {
     return issue;
   }
 
-  public async assignIssue(
-    sessionId: string,
-    idOrKey: string,
-    assignee: string,
-  ): Promise<void> {
+  public async assignIssue(idOrKey: string, assignee: string): Promise<void> {
     let url = `${this._resourceUrls.issue}/${idOrKey}/assignee`;
 
     await this.httpReq({
@@ -303,18 +291,14 @@ class CNJira extends CNShell {
         name: assignee,
       },
       headers: {
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
-  public async addComment(
-    sessionId: string,
-    idOrKey: string,
-    comment: string,
-  ): Promise<void> {
+  public async addComment(idOrKey: string, comment: string): Promise<void> {
     let url = `${this._resourceUrls.issue}/${idOrKey}/comment`;
 
     await this.httpReq({
@@ -324,18 +308,14 @@ class CNJira extends CNShell {
         body: comment,
       },
       headers: {
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
-  public async addWatcher(
-    sessionId: string,
-    idOrKey: string,
-    watcher: string,
-  ): Promise<void> {
+  public async addWatcher(idOrKey: string, watcher: string): Promise<void> {
     let url = `${this._resourceUrls.issue}/${idOrKey}/watchers`;
 
     await this.httpReq({
@@ -344,7 +324,7 @@ class CNJira extends CNShell {
       data: JSON.stringify(watcher),
       headers: {
         "Content-Type": "application/json;charset=UTF-8",
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
@@ -352,7 +332,6 @@ class CNJira extends CNShell {
   }
 
   public async getTransitions(
-    sessionId: string,
     idOrKey: string,
   ): Promise<{ [key: string]: string }> {
     let url = `${this._resourceUrls.issue}/${idOrKey}/transitions`;
@@ -361,7 +340,7 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers: {
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
@@ -377,14 +356,13 @@ class CNJira extends CNShell {
   }
 
   public async doTransition(
-    sessionId: string,
     idOrKey: string,
     transitionIdOrName: string,
     fields?: string[],
     comment?: string,
   ): Promise<void> {
     // transition may be the Transition ID or name so check
-    let availableTransitions = await this.getTransitions(sessionId, idOrKey);
+    let availableTransitions = await this.getTransitions(idOrKey);
     let transitionId = availableTransitions[transitionIdOrName];
 
     if (transitionId === undefined) {
@@ -395,7 +373,7 @@ class CNJira extends CNShell {
 
     if (fields !== undefined) {
       // Convert any field names to field IDs
-      await this.getFieldDict(sessionId);
+      await this.getFieldDict();
 
       for (let fname in fields) {
         let fid = this._fieldDict.byName[fname]?.id;
@@ -423,7 +401,7 @@ class CNJira extends CNShell {
       url,
       data,
       headers: {
-        cookie: `JSESSIONID=${sessionId}`,
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
