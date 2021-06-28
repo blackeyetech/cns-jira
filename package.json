@@ -52,11 +52,11 @@
     "husky": "^3.1.0",
     "lint-staged": "^9.5.0",
     "prettier": "^1.19.1",
-    "typescript": "^3.9.7"
+    "typescript": "^3.9.10"
   },
   "dependencies": {
-    "@types/node": "^12.12.61",
-    "cn-shell": "^2.14.0"
+    "@types/node": "^12.20.15",
+    "cn-shell": "^2.18.0"
   },
   "repository": {
     "type": "git",

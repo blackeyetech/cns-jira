@@ -43,7 +43,7 @@ class CNJira extends CNShell {
     this._server = server.replace(/(\/+$)/, "");
 
     this._user = this.getCfg(CFG_JIRA_USER);
-    this._password = this.getCfg(CFG_JIRA_PASSWORD);
+    this._password = this.getCfg(CFG_JIRA_PASSWORD, undefined, false, true);
 
     // Prepend the server to the resources to make our life easier
     this._resourceUrls = {};
