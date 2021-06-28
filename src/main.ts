@@ -83,7 +83,7 @@ class CNJira extends CNShell {
     this._jiraSessionId = res.data.session.value;
   }
 
-  async logout(): Promise<void> {
+  public async logout(): Promise<void> {
     let url = this._resourceUrls.session;
 
     await this.httpReq({
@@ -406,6 +406,26 @@ class CNJira extends CNShell {
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
+  }
+
+  public async runJql(jql: string): Promise<any[]> {
+    let url = `${this._resourceUrls.search}?jql=${encodeURI(jql)}`;
+
+    let res = await this.httpReq({
+      method: "get",
+      url,
+      headers: {
+        cookie: `JSESSIONID=${this._jiraSessionId}`,
+      },
+    }).catch(e => {
+      throw Error(`${e.response.status} - ${e.response.data}`);
+    });
+
+    if (res === undefined) {
+      return [];
+    }
+
+    return res.data;
   }
 }
 
