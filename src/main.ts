@@ -250,7 +250,7 @@ class CNJira extends CNShell {
     return res.data.key;
   }
 
-  public async getIssue(idOrKey: string): Promise<{ [key: string]: any }> {
+  public async getIssue(idOrKey: string): Promise<any> {
     let url = `${this._resourceUrls.issue}/${idOrKey}`;
 
     let res = await this.httpReq({
