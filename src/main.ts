@@ -128,6 +128,17 @@ class CNJira extends CNShell {
   }
 
   public async getFieldDict(update: boolean = false): Promise<FieldDict> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     // Check to see if the field dict is populated AND the user hasn't requested it to be updated
     if (this._fieldDict !== undefined && update === false) {
       return this._fieldDict;
@@ -138,9 +149,7 @@ class CNJira extends CNShell {
     let res = await this.httpReq({
       method: "get",
       url,
-      headers: {
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
@@ -170,6 +179,17 @@ class CNJira extends CNShell {
     issueType: string,
     fieldName: string,
   ): Promise<string[]> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     let url = this._resourceUrls.createmeta;
 
     let params = new URLSearchParams();
@@ -181,9 +201,7 @@ class CNJira extends CNShell {
       method: "get",
       url,
       params,
-      headers: {
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
@@ -214,14 +232,23 @@ class CNJira extends CNShell {
   public async getComponents(
     projectKey: string,
   ): Promise<{ [key: string]: string }> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     let url = `${this._resourceUrls.components}/${projectKey}/components`;
 
     let res = await this.httpReq({
       method: "get",
       url,
-      headers: {
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
@@ -241,6 +268,17 @@ class CNJira extends CNShell {
     component: string,
     fields: { [key: string]: any },
   ): Promise<string> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     let components = await this.getComponents(projectKey);
 
     let issue: { [key: string]: any } = {
@@ -270,9 +308,7 @@ class CNJira extends CNShell {
       method: "post",
       url,
       data: issue,
-      headers: {
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
@@ -281,14 +317,23 @@ class CNJira extends CNShell {
   }
 
   public async getIssue(idOrKey: string): Promise<any> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     let url = `${this._resourceUrls.issue}/${idOrKey}`;
 
     let res = await this.httpReq({
       method: "get",
       url,
-      headers: {
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
@@ -312,6 +357,17 @@ class CNJira extends CNShell {
   }
 
   public async assignIssue(idOrKey: string, assignee: string): Promise<void> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     let url = `${this._resourceUrls.issue}/${idOrKey}/assignee`;
 
     await this.httpReq({
@@ -320,15 +376,24 @@ class CNJira extends CNShell {
       data: {
         name: assignee,
       },
-      headers: {
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
   public async addComment(idOrKey: string, comment: string): Promise<void> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     let url = `${this._resourceUrls.issue}/${idOrKey}/comment`;
 
     await this.httpReq({
@@ -337,25 +402,33 @@ class CNJira extends CNShell {
       data: {
         body: comment,
       },
-      headers: {
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
   public async addWatcher(idOrKey: string, watcher: string): Promise<void> {
+    let headers: { [key: string]: string } = {
+      "Content-Type": "application/json;charset=UTF-8",
+    };
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     let url = `${this._resourceUrls.issue}/${idOrKey}/watchers`;
 
     await this.httpReq({
       method: "post",
       url,
       data: JSON.stringify(watcher),
-      headers: {
-        "Content-Type": "application/json;charset=UTF-8",
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
@@ -364,14 +437,23 @@ class CNJira extends CNShell {
   public async getTransitions(
     idOrKey: string,
   ): Promise<{ [key: string]: string }> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     let url = `${this._resourceUrls.issue}/${idOrKey}/transitions`;
 
     let res = await this.httpReq({
       method: "get",
       url,
-      headers: {
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
@@ -391,6 +473,17 @@ class CNJira extends CNShell {
     fields?: string[],
     comment?: string,
   ): Promise<void> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     // transition may be the Transition ID or name so check
     let availableTransitions = await this.getTransitions(idOrKey);
     let transitionId = availableTransitions[transitionIdOrName];
@@ -430,23 +523,30 @@ class CNJira extends CNShell {
       method: "post",
       url,
       data,
-      headers: {
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
   public async runJql(jql: string): Promise<any[]> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
     let url = `${this._resourceUrls.search}?jql=${encodeURI(jql)}`;
 
     let res = await this.httpReq({
       method: "get",
       url,
-      headers: {
-        cookie: `JSESSIONID=${this._jiraSessionId}`,
-      },
+      headers,
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
