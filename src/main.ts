@@ -8,6 +8,10 @@ const CFG_JIRA_SERVER = "JIRA_SERVER";
 const CFG_JIRA_USER = "JIRA_USER";
 const CFG_JIRA_PASSWORD = "JIRA_PASSWORD";
 
+const CFG_SESSION_REFRESH_PERIOD = "SESSION_REFRESH_PERIOD";
+
+const DEFAULT_SESSION_REFRESH_PERIOD = "60"; // In mins
+
 // process.on("unhandledRejection", error => {
 //   // Will print "unhandledRejection err is not defined"
 //   console.log("unhandledRejection", error);
@@ -30,7 +34,10 @@ class CNJira extends CNShell {
   private _server: string;
   private _user: string;
   private _password: string;
-  private _jiraSessionId: string;
+  private _jiraSessionId: string | undefined;
+
+  private _refreshPeriod: number;
+  private _timeout: NodeJS.Timeout;
 
   private _resourceUrls: { [key: string]: string };
   private _fieldDict: FieldDict;
@@ -44,6 +51,12 @@ class CNJira extends CNShell {
 
     this._user = this.getCfg(CFG_JIRA_USER);
     this._password = this.getCfg(CFG_JIRA_PASSWORD, undefined, false, true);
+
+    let period = this.getCfg(
+      CFG_SESSION_REFRESH_PERIOD,
+      DEFAULT_SESSION_REFRESH_PERIOD,
+    );
+    this._refreshPeriod = parseInt(period, 10) * 60 * 1000; // Convert to ms
 
     // Prepend the server to the resources to make our life easier
     this._resourceUrls = {};
@@ -65,6 +78,8 @@ class CNJira extends CNShell {
     return true;
   }
 
+  // Private methods here
+
   // Public methods here
   public async login(auth?: AuthDetails): Promise<void> {
     let url = this._resourceUrls.session;
@@ -81,9 +96,22 @@ class CNJira extends CNShell {
     });
 
     this._jiraSessionId = res.data.session.value;
+
+    // Start a timer to sutomatically renew the session ID
+    this._timeout = setTimeout(() => {
+      this.info("Refreshing session ID!");
+      this.login();
+    }, this._refreshPeriod);
   }
 
   public async logout(): Promise<void> {
+    if (this._jiraSessionId === undefined) {
+      return;
+    }
+
+    // Stop the timer first!
+    clearInterval(this._timeout);
+
     let url = this._resourceUrls.session;
 
     await this.httpReq({
@@ -95,6 +123,8 @@ class CNJira extends CNShell {
     }).catch(e => {
       throw Error(`${e.response.status} - ${e.response.data}`);
     });
+
+    this._jiraSessionId = undefined;
   }
 
   public async getFieldDict(update: boolean = false): Promise<FieldDict> {
