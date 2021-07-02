@@ -91,8 +91,6 @@ class CNJira extends CNShell {
         username: auth !== undefined ? auth.username : this._user,
         password: auth !== undefined ? auth.password : this._password,
       },
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     this._jiraSessionId = res.data.session.value;
@@ -120,8 +118,6 @@ class CNJira extends CNShell {
       headers: {
         cookie: `JSESSIONID=${this._jiraSessionId}`,
       },
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     this._jiraSessionId = undefined;
@@ -150,8 +146,6 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     this._fieldDict = { byId: {}, byName: {} };
@@ -202,8 +196,6 @@ class CNJira extends CNShell {
       url,
       params,
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     // Convert field name to field ID
@@ -249,8 +241,6 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     let components: { [key: string]: string } = {};
@@ -309,8 +299,6 @@ class CNJira extends CNShell {
       url,
       data: issue,
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     return res.data.key;
@@ -334,8 +322,6 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     let issue: { [key: string]: any } = {};
@@ -377,8 +363,6 @@ class CNJira extends CNShell {
         name: assignee,
       },
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
@@ -403,8 +387,6 @@ class CNJira extends CNShell {
         body: comment,
       },
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
@@ -429,8 +411,6 @@ class CNJira extends CNShell {
       url,
       data: JSON.stringify(watcher),
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
@@ -454,8 +434,6 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     let transitions: { [key: string]: string } = {};
@@ -524,8 +502,6 @@ class CNJira extends CNShell {
       url,
       data,
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
   }
 
@@ -547,8 +523,6 @@ class CNJira extends CNShell {
       method: "get",
       url,
       headers,
-    }).catch(e => {
-      throw Error(`${e.response.status} - ${e.response.data}`);
     });
 
     if (res === undefined) {
