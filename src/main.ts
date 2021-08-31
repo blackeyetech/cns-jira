@@ -252,6 +252,40 @@ class CNJira extends CNShell {
     return components;
   }
 
+  public async getProjects(component?: string): Promise<any[]> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let url = this._resourceUrls.project;
+
+    let res = await this.httpReq({
+      method: "get",
+      url,
+      headers,
+    });
+
+    // This is not the full interface but all we need to here
+    interface Project {
+      projectCategory: { name: string };
+    }
+
+    let projects = <Project[]>res.data;
+
+    if (component !== undefined) {
+      return projects.filter(el => el.projectCategory.name === component);
+    }
+
+    return projects;
+  }
+
   public async createIssue(
     projectKey: string,
     issueType: string,
