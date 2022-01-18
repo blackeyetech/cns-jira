@@ -55,8 +55,8 @@
     "typescript": "^3.9.10"
   },
   "dependencies": {
-    "@types/node": "^12.20.37",
-    "cn-shell": "^2.24.0"
+    "@types/node": "^12.20.42",
+    "cn-shell": "^2.25.2"
   },
   "repository": {
     "type": "git",

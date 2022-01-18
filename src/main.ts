@@ -360,7 +360,7 @@ class CNJira extends CNShell {
 
     let issue: { [key: string]: any } = {};
 
-    // Convert any field name to field IDs
+    // Convert any field IDs to field name
     await this.getFieldDict();
 
     for (let fid in res.data.fields) {
@@ -372,6 +372,9 @@ class CNJira extends CNShell {
         issue[fid] = res.data.fields[fid];
       }
     }
+
+    // Add id to list of fields
+    issue["id"] = res.data.id;
 
     return issue;
   }
