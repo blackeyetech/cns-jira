@@ -479,7 +479,6 @@ class CNJira extends CNShell {
 
     let url = `${this._resourceUrls.issue}/${key}`;
 
-    this.info("%j", issue);
     let res = await this.httpReq({
       method: "put",
       url,
