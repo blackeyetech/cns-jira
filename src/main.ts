@@ -338,6 +338,50 @@ class CNJira extends CNShell {
     return res.data.key;
   }
 
+  public async updateIssue(
+    key: string,
+    fields: { [key: string]: any },
+  ): Promise<string> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let issue: { [key: string]: any } = {
+      fields: {},
+    };
+
+    // Convert any field names to field IDs
+    await this.getFieldDict();
+
+    for (let fname in fields) {
+      let fid = this._fieldDict.byName[fname]?.id;
+
+      if (fid !== undefined) {
+        issue.fields[fid] = fields[fname];
+      } else {
+        issue.fields[fname] = fields[fname];
+      }
+    }
+
+    let url = `${this._resourceUrls.issue}/${key}`;
+
+    let res = await this.httpReq({
+      method: "put",
+      url,
+      data: issue,
+      headers,
+    });
+
+    return res.data.key;
+  }
+
   public async getIssue(idOrKey: string): Promise<any> {
     let headers: { [key: string]: string } = {};
 
@@ -401,6 +445,49 @@ class CNJira extends CNShell {
       },
       headers,
     });
+  }
+
+  public async updateLabels(
+    key: string,
+    action: "add" | "remove",
+    labels: string[],
+  ): Promise<string> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let issue: { update: { labels: any[] } } = {
+      update: {
+        labels: [],
+      },
+    };
+
+    issue.update.labels = [];
+
+    // Convert any field names to field IDs
+    await this.getFieldDict();
+    for (let label of labels) {
+      issue.update.labels.push({ [action]: label });
+    }
+
+    let url = `${this._resourceUrls.issue}/${key}`;
+
+    this.info("%j", issue);
+    let res = await this.httpReq({
+      method: "put",
+      url,
+      data: issue,
+      headers,
+    });
+
+    return res.data.key;
   }
 
   public async addComment(idOrKey: string, comment: string): Promise<void> {
