@@ -328,6 +328,8 @@ class CNJira extends CNShell {
 
     let url = this._resourceUrls.issue;
 
+    this.debug("createIssue: issue (%j)", issue);
+
     let res = await this.httpReq({
       method: "post",
       url,
