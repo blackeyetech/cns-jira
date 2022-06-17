@@ -6,4 +6,5 @@ export const JiraResources: { [key: string]: string } = {
   createmeta: "/rest/api/2/issue/createmeta",
   components: "/rest/api/2/project",
   search: "/rest/api/2/search",
+  user: "/rest/api/2/user",
 };

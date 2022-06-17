@@ -12,6 +12,10 @@ const CFG_SESSION_REFRESH_PERIOD = "SESSION_REFRESH_PERIOD";
 
 const DEFAULT_SESSION_REFRESH_PERIOD = "60"; // In mins
 
+// Misc consts here
+const SCRIPTRUNNER_DASHBOARDS_N_FILTERS_URL =
+  "rest/scriptrunner/latest/canned/com.onresolve.scriptrunner.canned.jira.admin.ChangeSharedEntityOwnership";
+
 // process.on("unhandledRejection", error => {
 //   // Will print "unhandledRejection err is not defined"
 //   console.log("unhandledRejection", error);
@@ -26,6 +30,11 @@ interface AuthDetails {
 interface FieldDict {
   byName: { [key: string]: { id: string; type: string; itemType: string } };
   byId: { [key: string]: { name: string; type: string; itemType: string } };
+}
+
+interface DashboardsAndFiltersOject {
+  name: string;
+  values: [number, string][];
 }
 
 // CNJira class here
@@ -266,10 +275,14 @@ class CNJira extends CNShell {
 
     let url = this._resourceUrls.project;
 
+    let params = new URLSearchParams();
+    params.append("expand", "lead");
+
     let res = await this.httpReq({
       method: "get",
       url,
       headers,
+      params,
     });
 
     // This is not the full interface but all we need to here
@@ -284,6 +297,37 @@ class CNJira extends CNShell {
     }
 
     return projects;
+  }
+
+  // TODO: add getProject
+
+  public async updateProject(
+    project: string,
+    data: { [key: string]: string },
+  ): Promise<void> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let url = `${this._resourceUrls.project}/${project}`;
+
+    await this.httpReq({
+      method: "put",
+      url,
+      headers,
+      data,
+    });
+  }
+
+  public async updateProjectLead(project: string, lead: string) {
+    await this.updateProject(project, { lead });
   }
 
   public async createIssue(
@@ -425,6 +469,10 @@ class CNJira extends CNShell {
     return issue;
   }
 
+  public async issueReporter(key: string, reporter: string): Promise<void> {
+    await this.updateIssue(key, { reporter: { name: reporter } });
+  }
+
   public async assignIssue(idOrKey: string, assignee: string): Promise<void> {
     let headers: { [key: string]: string } = {};
 
@@ -536,6 +584,34 @@ class CNJira extends CNShell {
       url,
       data: JSON.stringify(watcher),
       headers,
+    });
+  }
+
+  public async removeWatcher(idOrKey: string, watcher: string): Promise<void> {
+    let headers: { [key: string]: string } = {
+      "Content-Type": "application/json;charset=UTF-8",
+    };
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let url = `${this._resourceUrls.issue}/${idOrKey}/watchers`;
+
+    let params = new URLSearchParams();
+    params.append("username", watcher);
+
+    await this.httpReq({
+      method: "delete",
+      url,
+      data: JSON.stringify(watcher),
+      headers,
+      params,
     });
   }
 
@@ -653,6 +729,187 @@ class CNJira extends CNShell {
     if (res === undefined) {
       return [];
     }
+
+    return res.data;
+  }
+
+  public async getUserDashboardIds(userId: string): Promise<number[]> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let url = `${this._server}/${SCRIPTRUNNER_DASHBOARDS_N_FILTERS_URL}/params`;
+
+    let res = await this.httpReq({
+      method: "post",
+      url,
+      data: {
+        FIELD_FROM_USER_ID: userId,
+      },
+      headers,
+    });
+
+    let dashboardIds: number[] = [];
+
+    let data = <DashboardsAndFiltersOject[]>res.data;
+
+    for (let obj of data) {
+      if (obj.name === "FIELD_DASHBOARD_IDS") {
+        for (let value of obj.values) {
+          dashboardIds.push(value[0]);
+        }
+      }
+    }
+
+    return dashboardIds;
+  }
+
+  public async getUserFilterIds(userId: string): Promise<number[]> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let url = `${this._server}/${SCRIPTRUNNER_DASHBOARDS_N_FILTERS_URL}/params`;
+
+    let res = await this.httpReq({
+      method: "post",
+      url,
+      data: {
+        FIELD_FROM_USER_ID: userId,
+      },
+      headers,
+    });
+
+    let filterIds: number[] = [];
+
+    let data = <DashboardsAndFiltersOject[]>res.data;
+
+    for (let obj of data) {
+      if (obj.name === "FIELD_FILTER_IDS") {
+        for (let value of obj.values) {
+          filterIds.push(value[0]);
+        }
+      }
+    }
+
+    return filterIds;
+  }
+
+  public async migrateDashboards(
+    fromUserId: string,
+    toUserId: string,
+    dashboardIds: number[],
+  ): Promise<void> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let url = `${this._server}/${SCRIPTRUNNER_DASHBOARDS_N_FILTERS_URL}/preview`;
+
+    let res = await this.httpReq({
+      method: "post",
+      url,
+      data: {
+        FIELD_FROM_USER_ID: fromUserId,
+        FIELD_TO_USER_ID: toUserId,
+        FIELD_DASHBOARD_IDS: dashboardIds,
+        FIELD_FILTER_IDS: [],
+      },
+      headers,
+    });
+
+    this.info("%s", res.data);
+  }
+
+  public async migrateFilters(
+    fromUserId: string,
+    toUserId: string,
+    filterIds: number[],
+  ): Promise<void> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let url = `${this._server}/${SCRIPTRUNNER_DASHBOARDS_N_FILTERS_URL}/preview`;
+
+    let res = await this.httpReq({
+      method: "post",
+      url,
+      data: {
+        FIELD_FROM_USER_ID: fromUserId,
+        FIELD_TO_USER_ID: toUserId,
+        FIELD_DASHBOARD_IDS: [],
+        FIELD_FILTER_IDS: filterIds,
+      },
+      headers,
+    });
+
+    this.info("%s", res.data);
+  }
+
+  public async getUser(
+    user: string,
+    byKey: boolean,
+    includeGroups: boolean = false,
+  ): Promise<Object> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let url = this._resourceUrls.user;
+
+    let params = new URLSearchParams();
+    if (byKey) {
+      params.append("key", user);
+    } else {
+      params.append("username", user);
+    }
+
+    if (includeGroups) {
+      params.append("expand", "groups");
+    }
+
+    let res = await this.httpReq({
+      method: "get",
+      url,
+      params,
+      headers,
+    });
 
     return res.data;
   }
