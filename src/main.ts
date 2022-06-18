@@ -37,6 +37,15 @@ interface DashboardsAndFiltersOject {
   values: [number, string][];
 }
 
+interface JqlResults {
+  startAt: number;
+  maxResults: number;
+  total: number;
+  issues: {
+    key: string;
+  }[];
+}
+
 // CNJira class here
 class CNJira extends CNShell {
   // Properties here
@@ -730,7 +739,59 @@ class CNJira extends CNShell {
       return [];
     }
 
-    return res.data;
+    return res.data.issues;
+  }
+
+  public async jqlGetAll(jql: string): Promise<string[]> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let issues: string[] = [];
+    let startAt = 0;
+    let maxResults = 1000; // 1000 is the max you can get
+
+    while (true) {
+      let url = `${this._resourceUrls.search}?jql=${encodeURI(
+        jql,
+      )}&startAt=${startAt}&maxResults=${maxResults}&&fields=key`;
+
+      let res = await this.httpReq({
+        method: "get",
+        url,
+        headers,
+      }).catch(e => {
+        this.error(e);
+      });
+
+      if (res === undefined) {
+        break;
+      }
+
+      // Append the results to what we already have
+      let results = <JqlResults>res.data;
+      for (let issue of results.issues) {
+        issues.push(issue.key);
+      }
+
+      // Increment by maxResults
+      startAt += maxResults;
+
+      // If we are beyond the total then we have everything so break,
+      // otherwise go again
+      if (startAt > results.total) {
+        break;
+      }
+    }
+
+    return issues;
   }
 
   public async getUserDashboardIds(userId: string): Promise<number[]> {
@@ -915,4 +976,4 @@ class CNJira extends CNShell {
   }
 }
 
-export { CNJira, AuthDetails, FieldDict };
+export { CNJira, AuthDetails, FieldDict, JqlResults };
