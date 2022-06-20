@@ -897,7 +897,7 @@ class CNJira extends CNShell {
       headers.Authorization = `Basic ${token}`;
     }
 
-    let url = `${this._server}/${SCRIPTRUNNER_DASHBOARDS_N_FILTERS_URL}/preview`;
+    let url = `${this._server}/${SCRIPTRUNNER_DASHBOARDS_N_FILTERS_URL}`;
 
     let res = await this.httpReq({
       method: "post",
@@ -930,7 +930,7 @@ class CNJira extends CNShell {
       headers.Authorization = `Basic ${token}`;
     }
 
-    let url = `${this._server}/${SCRIPTRUNNER_DASHBOARDS_N_FILTERS_URL}/preview`;
+    let url = `${this._server}/${SCRIPTRUNNER_DASHBOARDS_N_FILTERS_URL}`;
 
     let res = await this.httpReq({
       method: "post",
