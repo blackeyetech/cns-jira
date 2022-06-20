@@ -32,7 +32,12 @@ interface FieldDict {
   byId: { [key: string]: { name: string; type: string; itemType: string } };
 }
 
-interface DashboardsAndFiltersOject {
+interface DashboardsOject {
+  name: string;
+  values: [number, string][];
+}
+
+interface FiltersOject {
   name: string;
   values: [number, string][];
 }
@@ -825,7 +830,7 @@ class CNJira extends CNShell {
 
     let dashboardIds: number[] = [];
 
-    let data = <DashboardsAndFiltersOject[]>res.data;
+    let data = <DashboardsOject[]>res.data;
 
     for (let obj of data) {
       if (obj.name === "FIELD_DASHBOARD_IDS") {
@@ -838,7 +843,7 @@ class CNJira extends CNShell {
     return dashboardIds;
   }
 
-  public async getUserFilterIds(userId: string): Promise<number[]> {
+  public async getUserFilterIds(userId: string): Promise<string[]> {
     let headers: { [key: string]: string } = {};
 
     if (this._jiraSessionId !== undefined) {
@@ -861,14 +866,14 @@ class CNJira extends CNShell {
       headers,
     });
 
-    let filterIds: number[] = [];
+    let filterIds: string[] = [];
 
-    let data = <DashboardsAndFiltersOject[]>res.data;
+    let data = <FiltersOject[]>res.data;
 
     for (let obj of data) {
       if (obj.name === "FIELD_FILTER_IDS") {
         for (let value of obj.values) {
-          filterIds.push(value[0]);
+          filterIds.push(value[0].toString());
         }
       }
     }
@@ -912,7 +917,7 @@ class CNJira extends CNShell {
   public async migrateFilters(
     fromUserId: string,
     toUserId: string,
-    filterIds: number[],
+    filterIds: string[],
   ): Promise<void> {
     let headers: { [key: string]: string } = {};
 
