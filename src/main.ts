@@ -396,6 +396,7 @@ class CNJira extends CNShell {
   public async updateIssue(
     key: string,
     fields: { [key: string]: any },
+    notifyUsers: boolean = true,
   ): Promise<string> {
     let headers: { [key: string]: string } = {};
 
@@ -426,6 +427,10 @@ class CNJira extends CNShell {
     }
 
     let url = `${this._resourceUrls.issue}/${key}`;
+
+    if (notifyUsers === false) {
+      url = `${url}?notifyUsers=false`;
+    }
 
     let res = await this.httpReq({
       method: "put",
@@ -478,38 +483,35 @@ class CNJira extends CNShell {
     return issue;
   }
 
-  public async issueReporter(key: string, reporter: string): Promise<void> {
-    await this.updateIssue(key, { reporter: { name: reporter } });
+  public async issueReporter(
+    key: string,
+    reporter: string,
+    notifyUsers: boolean = true,
+  ): Promise<void> {
+    await this.updateIssue(key, { reporter: { name: reporter } }, notifyUsers);
   }
 
-  public async assignIssue(idOrKey: string, assignee: string): Promise<void> {
-    let headers: { [key: string]: string } = {};
-
-    if (this._jiraSessionId !== undefined) {
-      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
-    } else {
-      let token = Buffer.from(`${this._user}:${this._password}`).toString(
-        "base64",
-      );
-      headers.Authorization = `Basic ${token}`;
-    }
-
-    let url = `${this._resourceUrls.issue}/${idOrKey}/assignee`;
-
-    await this.httpReq({
-      method: "put",
-      url,
-      data: {
-        name: assignee,
+  public async assignIssue(
+    key: string,
+    assignee: string,
+    notifyUsers: boolean = true,
+  ): Promise<void> {
+    await this.updateIssue(
+      key,
+      {
+        assignee: {
+          name: assignee,
+        },
       },
-      headers,
-    });
+      notifyUsers,
+    );
   }
 
   public async updateLabels(
     key: string,
     action: "add" | "remove",
     labels: string[],
+    notifyUsers: boolean = true,
   ): Promise<string> {
     let headers: { [key: string]: string } = {};
 
@@ -537,6 +539,10 @@ class CNJira extends CNShell {
     }
 
     let url = `${this._resourceUrls.issue}/${key}`;
+
+    if (notifyUsers === false) {
+      url = `${url}?notifyUsers=false`;
+    }
 
     let res = await this.httpReq({
       method: "put",
