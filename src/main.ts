@@ -761,7 +761,7 @@ class CNJira extends CNShell {
     while (true) {
       let url = `${this._resourceUrls.search}?jql=${encodeURI(
         jql,
-      )}&startAt=${startAt}&maxResults=${maxResults}&&fields=key`;
+      )}&startAt=${startAt}&maxResults=${maxResults}&fields=key`;
 
       let res = await this.httpReq({
         method: "get",
@@ -970,6 +970,34 @@ class CNJira extends CNShell {
       url,
       params,
       headers,
+    });
+
+    return res.data;
+  }
+
+  public async addUserToGroup(user: string, group: string): Promise<Object> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let url = `${this._resourceUrls.group}/user`;
+
+    let params = new URLSearchParams();
+    params.append("groupname", group);
+
+    let res = await this.httpReq({
+      method: "post",
+      url,
+      params,
+      headers,
+      data: { name: user },
     });
 
     return res.data;
