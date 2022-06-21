@@ -951,7 +951,7 @@ class CNJira extends CNShell {
     user: string,
     byKey: boolean,
     includeGroups: boolean = false,
-  ): Promise<Object> {
+  ): Promise<any> {
     let headers: { [key: string]: string } = {};
 
     if (this._jiraSessionId !== undefined) {
@@ -1012,6 +1012,53 @@ class CNJira extends CNShell {
     });
 
     return res.data;
+  }
+
+  public async getUserGroups(user: string): Promise<string[]> {
+    let details = await this.getUser(user, false, true);
+
+    let groups: string[] = [];
+    let groupItems = details?.groups?.items;
+
+    if (groups !== undefined) {
+      for (let group of groupItems) {
+        groups.push(group.name);
+      }
+    }
+
+    return groups;
+  }
+
+  public async addUserToApplication(
+    user: string,
+    applicationKey: string,
+  ): Promise<void> {
+    let headers: { [key: string]: string } = {};
+
+    if (this._jiraSessionId !== undefined) {
+      headers.cookie = `JSESSIONID=${this._jiraSessionId}`;
+    } else {
+      let token = Buffer.from(`${this._user}:${this._password}`).toString(
+        "base64",
+      );
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    let url = `${this._resourceUrls.user}/application`;
+
+    let params = new URLSearchParams();
+    params.append("username", user);
+    params.append("applicationKey", applicationKey);
+
+    await this.httpReq({
+      method: "post",
+      url,
+      params,
+      headers,
+      data: {},
+    }).catch(e => {
+      this.error(e);
+    });
   }
 }
 
